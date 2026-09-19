@@ -297,7 +297,8 @@ else(ROS_EDITION STREQUAL "ROS2")
     ${PCL_INCLUDE_DIRS}
     ${APR_INCLUDE_DIRS}
     ${LIVOX_LIDAR_SDK_INCLUDE_DIR}
-    ${LIVOX_INTERFACES_INCLUDE_DIRECTORIES}   # for custom msgs
+    # ${LIVOX_INTERFACES_INCLUDE_DIRECTORIES}   # for custom msgs
+    ${PROJECT_SOURCE_DIR}/../livox_interfaces2
     3rdparty
     src
   )
