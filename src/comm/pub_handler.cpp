@@ -102,11 +102,11 @@ void PubHandler::OnLivoxLidarPointCloudCallback(uint32_t handle, const uint8_t d
     return;
   }
 
-  if (data->time_type != kTimestampTypeNoSync) {
-    is_timestamp_sync_.store(true);
-  } else {
-    is_timestamp_sync_.store(false);
-  }
+  // [time-sync fix] Force NoSync so CheckTimer uses the host-clock publish
+  // cadence. See GetEthPacketTimestamp: without this the PTP-aligned branch
+  // waits for timestamps to hit exact 200 ms boundaries, which host time never
+  // does, and no point cloud would ever be published.
+  is_timestamp_sync_.store(false);
 
   if (data->data_type == kLivoxLidarImuData) {
     if (self->imu_callback_) {
@@ -263,14 +263,13 @@ bool PubHandler::GetLidarId(LidarProtoType lidar_type, uint32_t handle, uint32_t
 }
 
 uint64_t PubHandler::GetEthPacketTimestamp(uint8_t timestamp_type, uint8_t* time_stamp, uint8_t size) {
-  LdsStamp time;
-  memcpy(time.stamp_bytes, time_stamp, size);
-
-  if (timestamp_type == kTimestampTypeGptpOrPtp ||
-      timestamp_type == kTimestampTypeGps) {
-    return time.stamp;
-  }
-
+  // [time-sync fix] This rig has no PTP/GPS sync on the MID360S, so the packet
+  // timestamp is a free-running clock that drifts (~9% slow) relative to the
+  // NTP-synced host clock. Stamp everything from host receive time so the IMU
+  // and LiDAR share one clock and stay mutually aligned (required by LIO).
+  (void)timestamp_type;
+  (void)time_stamp;
+  (void)size;
   return std::chrono::high_resolution_clock::now().time_since_epoch().count();
 }
 
